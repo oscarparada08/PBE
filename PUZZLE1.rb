@@ -1,4 +1,3 @@
-
 # Este script utiliza un lector RFID MFRC522 para leer el UID de tarjetas RFID
 # Requiere una Raspberry Pi y módulos adicionales para GPIO y control de colores en terminal.
 
