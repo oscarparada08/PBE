@@ -1,5 +1,4 @@
-#!/usr/bin/env ruby
-# -*- coding: utf-8 -*-
+
 # Este script utiliza un lector RFID MFRC522 para leer el UID de tarjetas RFID
 # Requiere una Raspberry Pi y módulos adicionales para GPIO y control de colores en terminal.
 
@@ -25,9 +24,9 @@ class RfidRc522
   end
 end
 
-# Método que limpia la pantalla del terminal (compatible con Windows y Linux)
+# Método que limpia la pantalla del terminal
 def clear_screen
-  system('clear') || system('cls')
+  system('clear')
 end
 
 # Variable para controlar el ciclo de escaneo
