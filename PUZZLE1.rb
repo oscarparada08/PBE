@@ -48,5 +48,3 @@ while opc != "n"
   end
 end
 
-# Limpiamos los pines GPIO después de cada escaneo
-PiPiper.clean_up  # Limpiamos los pines GPIO
