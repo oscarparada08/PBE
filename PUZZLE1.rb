@@ -22,23 +22,41 @@ while opc != "n"
   puts "\t" + "    PASS   ".yellow
   puts "\t" + "<<<<<<<<<<<<".red
 
-  begin
-    # Creamos una nueva instancia del lector RFID
-    reader = mfrc522::Reader.new
-    
-    # Leemos el UID de la tarjeta RFID
-    uid = reader.read_uid
-    
-    # Convertimos el UID a formato hexadecimal en mayúsculas
-    uid_hex = uid.map { |byte| byte.to_s(16).upcase }.join
+void loop() {
+  // Look for new cards
+  if (!mfrc522.PICC_IsNewCardPresent()) {
+    return;
+  }
 
-    # Mostramos el UID obtenido en la terminal
-    puts "\t YOUR UID IS:"
-    puts "\t" + ">>>>>>>>>>".green
-    puts "\t" + uid_hex.strip.sub(/^0x/i, "").green  # Eliminamos el prefijo '0x' y mostramos en verde
-    puts "\t" + ">>>>>>>>>>".green
-  rescue StandardError => e
-    puts "Error: #{e.message}".red  # Manejo de errores, en caso de que no se lea el UID
+  // Read one of the cards
+  if (!mfrc522.PICC_ReadCardSerial()) {
+    return;
+  }
+
+  String RFID = "";
+
+  // Convert from bytes from UID array to String
+  for (byte i = 0; i < mfrc522.uid.size; i++) {
+    // Workaround: If the byte is less than 0x10, print
+    // a `0` before, to output two digits.
+    if(mfrc522.uid.uidByte[i] < 0x10) {
+      RFID.concat("0");
+    }
+
+    RFID.concat(String(mfrc522.uid.uidByte[i], HEX));
+  }
+
+  RFID.toUpperCase();
+
+    print RFID;
+
+   Preguntamos al usuario si quiere escanear otra tarjeta
+    print "\t SCAN AGAIN? (y/n): "
+    
+    # Leemos la entrada del usuario y la convertimos a minúsculas
+    opc = gets.chomp.downcase
+
+}
   ensure
     # Preguntamos al usuario si quiere escanear otra tarjeta
     print "\t SCAN AGAIN? (y/n): "
