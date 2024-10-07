@@ -1,67 +1,69 @@
-require 'pigpio'
+# Este script utiliza un lector RFID MFRC522 para leer el UID de tarjetas RFID
+# Requiere una Raspberry Pi y módulos adicionales para GPIO y control de colores en terminal.
 
-# Configuración de pines
-SS_PIN = 8   # CE0 (Chip Select)
-RST_PIN = 25 # Reset
+require 'pi_piper'  # Biblioteca para controlar los pines GPIO en la Raspberry Pi
+require 'colorize'  # Biblioteca para agregar color al texto en la terminal
+require 'mfrc522'   # Biblioteca para interactuar con el lector RFID MFRC522
 
-# Inicializa la biblioteca pigpio
-gpio = Pigpio::GPIO
-
-# Configura los pines
-gpio.set_mode(SS_PIN, Pigpio::OUTPUT)
-gpio.set_mode(RST_PIN, Pigpio::OUTPUT)
-
-# Función para escribir en un registro
-def rc522_write(gpio, ss_pin, register, value)
-  gpio.write(ss_pin, 0)  # Activar el módulo
-  # Implementa la comunicación SPI para escribir
-  gpio.spi_xfer(0, [register, value])
-  gpio.write(ss_pin, 1)  # Desactivar el módulo
-end
-
-# Función para leer de un registro
-def rc522_read(gpio, ss_pin, register)
-  gpio.write(ss_pin, 0)  # Activar el módulo
-  response = gpio.spi_xfer(0, [register, 0])  # Enviar el registro y recibir el valor
-  gpio.write(ss_pin, 1)  # Desactivar el módulo
-  return response[1]     # Devuelve el segundo byte que es el valor leído
-end
-
-# Inicializa el RC522
-def init_rc522(gpio)
-  rc522_write(gpio, SS_PIN, 0x01, 0x0F)  # Activar el módulo
-  rc522_write(gpio, SS_PIN, 0x2A, 0x8D)  # Configurar el modo de espera
-end
-
-# Función para detectar la tarjeta
-def detect_card(gpio)
-  # Implementa la lógica para detectar la tarjeta aquí
-  true  # Para pruebas, siempre devuelve verdadero
-end
-
-# Leer ID de la tarjeta
-def read_card_id(gpio)
-  "123456"  # Para pruebas, devuelve un ID fijo
-end
-
-# Configuración inicial
-init_rc522(gpio)
-
-# Bucle principal
-begin
-  puts "Esperando a detectar una tarjeta..."
-  loop do
-    if detect_card(gpio)
-      puts "Tarjeta detectada!"
-      card_id = read_card_id(gpio)
-      puts "ID de la tarjeta: #{card_id}"
-      sleep 1  # Espera antes de volver a detectar
-    end
-    sleep 0.1  # Pausa para evitar sobrecarga
+# Definimos una clase que se encargará de manejar el lector RFID
+class RfidRc522
+  # Método que inicializa el lector, lee el UID de la tarjeta y lo devuelve en formato hexadecimal
+  def scan_uid
+    # Creamos una nueva instancia del lector RFID
+    reader = MFRC522::Reader.new
+    
+    # Leemos el UID de la tarjeta RFID
+    uid = reader.read_uid
+    
+    # Convertimos el UID a formato hexadecimal en mayúsculas
+    uid_hex = uid.map { |byte| byte.to_s(16).upcase }.join
+    
+    # Retornamos el UID en formato hexadecimal
+    return uid_hex
   end
-rescue Interrupt
-  puts "Saliendo..."
-ensure
-  gpio.write(RST_PIN, 1)  # Asegúrate de desactivar el módulo
-  gpio.stop
+end
+
+# Método que limpia la pantalla del terminal
+def clear_screen
+  system('clear')
+end
+
+# Variable para controlar el ciclo de escaneo
+opc = ""
+
+# Bucle que sigue ejecutándose hasta que el usuario elija no escanear más
+while opc != "n"
+  # Limpiamos la pantalla antes de cada escaneo
+  clear_screen
+  
+  # Mostramos un mensaje con instrucciones para el usuario, con colores
+  puts "\t" + "<<<<<<<<<<<<".red
+  puts "\t" + "    SCAN   ".yellow
+  puts "\t" + "    YOUR   ".yellow
+  puts "\t" + "    PASS   ".yellow
+  puts "\t" + "<<<<<<<<<<<<".red
+
+  begin
+    # Inicializamos el objeto para manejar el lector RFID
+    rf = RfidRc522.new
+    
+    # Escaneamos y obtenemos el UID de la tarjeta
+    uid = rf.scan_uid
+    
+    # Mostramos el UID obtenido en la terminal
+    puts "\t YOUR UID IS:"
+    puts "\t" + ">>>>>>>>>>".green
+    puts "\t" + uid.strip.sub(/^0x/i, "").green  # Eliminamos el prefijo '0x' y mostramos en verde
+    puts "\t" + ">>>>>>>>>>".green
+  ensure
+    # Preguntamos al usuario si quiere escanear otra tarjeta
+    opc = "n"  # Inicializamos la opción como 'n' (para evitar que se quede en ciclo infinito)
+    print "\t SCAN AGAIN? (y/n): "
+    
+    # Leemos la entrada del usuario y la convertimos a minúsculas
+    opc = gets.chomp.downcase
+    
+    # Limpiamos los pines GPIO después de cada escaneo
+    RPi::GPIO.clean_up
+  end
 end
