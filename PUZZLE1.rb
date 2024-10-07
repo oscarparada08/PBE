@@ -24,7 +24,7 @@ while opc != "n"
 
   begin
     # Creamos una nueva instancia del lector RFID
-    reader = MFRC522::Reader.new
+    reader = mfrc522::Reader.new
     
     # Leemos el UID de la tarjeta RFID
     uid = reader.read_uid
