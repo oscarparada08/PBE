@@ -1,11 +1,11 @@
-require 'mrfc522'
 require 'gpio'
+require 'mrfc522'
 require 'colorize'
 
 # Inicializar el lector RC522
 reader = MRFC522.new(
-  sda: 8,  # Pin SDA
-  reset: 7 # Pin Reset
+  sda: 8,   # Pin SDA
+  reset: 7  # Pin Reset
 )
 
 # Función para escanear el RFID
