@@ -11,7 +11,7 @@ class RfidRc522
   # Método que inicializa el lector, lee el UID de la tarjeta y lo devuelve en formato hexadecimal
   def scan_uid
     uid = @reader.read_uid  # Lee el UID de la tarjeta RFID
-    return uid.map { |byte| byte.to_s(16).upcase }.join if uid # Convertimos el UID a formato hexadecimal en mayúsculas
+    return uid.map { |byte| byte.to_s(16).upcase }.join if uid # Convierte el UID a formato hexadecimal en mayúsculas
     nil
   end
 end
