@@ -8,10 +8,6 @@ SDA_PIN = 24  # Pin para SDA del MFRC522
 # Inicializa el lector sin parámetros
 reader = MFRC522.new
 
-# Configura los pines del lector
-reader.set_pin(:sda, SDA_PIN)
-reader.set_pin(:reset, RST_PIN)
-
 # Bucle principal
 loop do
   puts "Por favor, acerque su tarjeta al lector..."
