@@ -1,22 +1,18 @@
-require 'pi_piper'  # Biblioteca para controlar los pines GPIO en la Raspberry Pi
-require 'colorize'   # Biblioteca para agregar color al texto en la terminal
-require 'mfrc522'    # Biblioteca para interactuar con el lector RFID MFRC522
+require 'pi_piper' # Biblioteca para controlar los pines GPIO en la Raspberry Pi
+require 'colorize'  # Biblioteca para agregar color al texto en la terminal
+require 'mfrc522'   # Biblioteca para interactuar con el lector RFID MFRC522
 
 # Definimos una clase que se encargará de manejar el lector RFID
 class RfidRc522
-  # Método que inicializa el lector, lee el UID de la tarjeta y lo devuelve en formato hexadecimal
+  def initialize
+    @reader = MFRC522::Reader.new  # Inicializamos el lector RFID
+  end
+  
+  # Método que escanea y devuelve el UID en formato hexadecimal
   def scan_uid
-    # Creamos una nueva instancia del lector RFID
-    reader = MFRC522::Reader.new
-    
-    # Leemos el UID de la tarjeta RFID
-    uid = reader.read_uid
-    
-    # Convertimos el UID a formato hexadecimal en mayúsculas
-    uid_hex = uid.map { |byte| byte.to_s(16).upcase }.join
-    
-    # Retornamos el UID en formato hexadecimal
-    return uid_hex
+    uid = @reader.read_uid
+    return uid.map { |byte| byte.to_s(16).upcase }.join if uid
+    nil
   end
 end
 
@@ -32,7 +28,7 @@ opc = ""
 while opc != "n"
   # Limpiamos la pantalla antes de cada escaneo
   clear_screen
-  
+
   # Mostramos un mensaje con instrucciones para el usuario, con colores
   puts "\t" + "<<<<<<<<<<<<".red
   puts "\t" + "    SCAN   ".yellow
@@ -43,17 +39,19 @@ while opc != "n"
   begin
     # Inicializamos el objeto para manejar el lector RFID
     rf = RfidRc522.new
-    
+
     # Escaneamos y obtenemos el UID de la tarjeta
     uid = rf.scan_uid
-    
-    # Mostramos el UID obtenido en la terminal
-    puts "\t YOUR UID IS:"
-    puts "\t" + ">>>>>>>>>>".green
-    puts "\t" + uid.strip.sub(/^0x/i, "").green  # Eliminamos el prefijo '0x' y mostramos en verde
-    puts "\t" + ">>>>>>>>>>".green
-  rescue StandardError => e
-    puts "\t Error: #{e.message}".red  # Manejo de errores en caso de que algo falle
+
+    if uid
+      # Mostramos el UID obtenido en la terminal
+      puts "\t YOUR UID IS:"
+      puts "\t" + ">>>>>>>>>>".green
+      puts "\t" + uid.strip.green  # Mostramos el UID en verde
+      puts "\t" + ">>>>>>>>>>".green
+    else
+      puts "\t No se detectó ninguna tarjeta.".red
+    end
   ensure
     # Preguntamos al usuario si quiere escanear otra tarjeta
     print "\t SCAN AGAIN? (y/n): "
@@ -62,6 +60,6 @@ while opc != "n"
     opc = gets.chomp.downcase
     
     # Limpiamos los pines GPIO después de cada escaneo
-    PiPiper.clean_up  # Limpiar pines GPIO
+    RPi::GPIO.clean_up
   end
 end
