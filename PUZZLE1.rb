@@ -1,68 +1,38 @@
-require 'gpio'         # Biblioteca para controlar los pines GPIO en la Raspberry Pi
-require 'colorize'     # Biblioteca para agregar color al texto en la terminal
-require 'mfrc522'      # Biblioteca para interactuar con el lector RFID MFRC522
+require 'mrfc522'
+require 'gpio'
+require 'colorize'
 
-# Definimos una clase que se encargará de manejar el lector RFID
-class RfidRc522
-  def initialize
-    @reader = MFRC522::Reader.new  # Creamos una nueva instancia del lector RFID
-  end
+# Inicializar el lector RC522
+reader = MRFC522.new(
+  sda: 8,  # Pin SDA
+  reset: 7 # Pin Reset
+)
 
-  # Método que inicializa el lector, lee el UID de la tarjeta y lo devuelve en formato hexadecimal
-  def scan_uid
-    puts "Acercar la tarjeta RFID al lector..."
-    # Lee el UID de la tarjeta RFID, espera hasta que se detecte una tarjeta
-    uid = @reader.read_uid
-    return uid.map { |byte| byte.to_s(16).upcase }.join if uid # Convierte el UID a formato hexadecimal en mayúsculas
+# Función para escanear el RFID
+def scan_rfid(reader)
+  puts "Acerque su tarjeta RFID..."
+  uid = reader.read_uid
+  if uid
+    puts "¡Tarjeta detectada! UID: #{uid.join('-').colorize(:green)}"
+    uid.join('-')  # Devuelve el UID como una cadena
+  else
+    puts "No se detectó ninguna tarjeta.".colorize(:red)
     nil
   end
 end
 
-# Método que limpia la pantalla del terminal
-def clear_screen
-  system('clear')
-end
+loop do
+  # Escanear la tarjeta
+  scanned_uid = scan_rfid(reader)
 
-# Variable para controlar el ciclo de escaneo
-opc = ""
-
-# Bucle que sigue ejecutándose hasta que el usuario elija no escanear más
-while opc != "n"
-  # Limpiamos la pantalla antes de cada escaneo
-  clear_screen
-
-  # Mostramos un mensaje con instrucciones para el usuario, con colores
-  puts "\t" + "<<<<<<<<<<<<".red
-  puts "\t" + "    SCAN   ".yellow
-  puts "\t" + "    YOUR   ".yellow
-  puts "\t" + "    PASS   ".yellow
-  puts "\t" + "<<<<<<<<<<<<".red
-
-  begin
-    # Inicializamos el objeto para manejar el lector RFID
-    rf = RfidRc522.new
-    
-    # Escaneamos y obtenemos el UID de la tarjeta
-    uid = nil
-    loop do
-      uid = rf.scan_uid  # Llama al método para escanear
-      break if uid  # Sal del bucle si se obtiene un UID
-    end
-
-    # Mostramos el UID obtenido en la terminal
-    puts "\t YOUR UID IS:"
-    puts "\t" + ">>>>>>>>>>".green
-    puts "\t" + uid.strip.sub(/^0x/i, "").green  # Eliminamos el prefijo '0x' y mostramos en verde
-    puts "\t" + ">>>>>>>>>>".green
-
-  rescue StandardError => e
-    puts "Error: #{e.message}".red
-  ensure
-    # Preguntamos al usuario si quiere escanear otra tarjeta
-    opc = "n"  # Inicializamos la opción como 'n' (para evitar que se quede en ciclo infinito)
-    print "\t SCAN AGAIN? (y/n): "
-
-    # Leemos la entrada del usuario y la convertimos a minúsculas
-    opc = gets.chomp.downcase
+  # Preguntar si quiere volver a escanear
+  if scanned_uid
+    print "¿Desea escanear otra tarjeta? (s/n): "
+    respuesta = gets.chomp.downcase
+    break unless respuesta == 's'
+  else
+    puts "Intente nuevamente.".colorize(:yellow)
   end
 end
+
+puts "Proceso finalizado.".colorize(:blue)
