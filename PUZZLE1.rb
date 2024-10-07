@@ -5,7 +5,7 @@ SS_PIN = 8   # CE0 (Chip Select)
 RST_PIN = 25 # Reset
 
 # Inicializa la biblioteca pigpio
-gpio = Pigpio::GPIO.new
+gpio = Pigpio::GPIO
 
 # Configura los pines
 gpio.set_mode(SS_PIN, Pigpio::OUTPUT)
