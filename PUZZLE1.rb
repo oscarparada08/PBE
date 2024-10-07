@@ -13,7 +13,7 @@ loop do
   puts "Por favor, acerque su tarjeta al lector..."
 
   # Intenta leer el UID de la tarjeta
-  uid = reader.read_uid
+  uid = reader.read_spi
   if uid
     puts "UID de la tarjeta: #{uid.join(', ')}"
   else
