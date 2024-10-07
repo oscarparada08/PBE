@@ -5,7 +5,8 @@ require 'mfrc522'      # Biblioteca para interactuar con el lector RFID MFRC522
 # Definimos una clase que se encargará de manejar el lector RFID
 class RfidRc522
   def initialize
-    @reader = MFRC522::Reader.new  # Creamos una nueva instancia del lector RFID
+    # Inicializa el lector RFID
+    @reader = MFRC522::Reader.new
   end
 
   # Método que inicializa el lector, lee el UID de la tarjeta y lo devuelve en formato hexadecimal
