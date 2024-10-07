@@ -1,7 +1,7 @@
 # Este script utiliza un lector RFID MFRC522 para leer el UID de tarjetas RFID
 # Requiere una Raspberry Pi y módulos adicionales para GPIO y control de colores en terminal.
 
-require 'pi_piper'  # Biblioteca para controlar los pines GPIO en la Raspberry Pi
+requirer'pi_piper' # Biblioteca para controlar los pines GPIO en la Raspberry Pi
 require 'colorize'  # Biblioteca para agregar color al texto en la terminal
 require 'mfrc522'   # Biblioteca para interactuar con el lector RFID MFRC522
 
