@@ -5,13 +5,14 @@ require 'mfrc522'      # Biblioteca para interactuar con el lector RFID MFRC522
 # Definimos una clase que se encargará de manejar el lector RFID
 class RfidRc522
   def initialize
-    # Inicializa el lector RFID
-    reader = MFRC522::Reader.new
+    @reader = MFRC522::Reader.new  # Creamos una nueva instancia del lector RFID
   end
 
   # Método que inicializa el lector, lee el UID de la tarjeta y lo devuelve en formato hexadecimal
   def scan_uid
-    uid = reader.read_uid  # Lee el UID de la tarjeta RFID
+    puts "Acercar la tarjeta RFID al lector..."
+    # Lee el UID de la tarjeta RFID, espera hasta que se detecte una tarjeta
+    uid = @reader.read_uid
     return uid.map { |byte| byte.to_s(16).upcase }.join if uid # Convierte el UID a formato hexadecimal en mayúsculas
     nil
   end
@@ -42,17 +43,20 @@ while opc != "n"
     rf = RfidRc522.new
     
     # Escaneamos y obtenemos el UID de la tarjeta
-    uid = rf.scan_uid
+    uid = nil
+    loop do
+      uid = rf.scan_uid  # Llama al método para escanear
+      break if uid  # Sal del bucle si se obtiene un UID
+    end
 
     # Mostramos el UID obtenido en la terminal
-    if uid
-      puts "\t YOUR UID IS:"
-      puts "\t" + ">>>>>>>>>>".green
-      puts "\t" + uid.strip.sub(/^0x/i, "").green  # Eliminamos el prefijo '0x' y mostramos en verde
-      puts "\t" + ">>>>>>>>>>".green
-    else
-      puts "\t No se detectó ninguna tarjeta. Intente de nuevo.".red
-    end
+    puts "\t YOUR UID IS:"
+    puts "\t" + ">>>>>>>>>>".green
+    puts "\t" + uid.strip.sub(/^0x/i, "").green  # Eliminamos el prefijo '0x' y mostramos en verde
+    puts "\t" + ">>>>>>>>>>".green
+
+  rescue StandardError => e
+    puts "Error: #{e.message}".red
   ensure
     # Preguntamos al usuario si quiere escanear otra tarjeta
     opc = "n"  # Inicializamos la opción como 'n' (para evitar que se quede en ciclo infinito)
