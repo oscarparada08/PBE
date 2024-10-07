@@ -59,7 +59,6 @@ while opc != "n"
     # Leemos la entrada del usuario y la convertimos a minúsculas
     opc = gets.chomp.downcase
     
-    # Limpiamos los pines GPIO después de cada escaneo
-    RPi::GPIO.clean_up
+    # Pi_piper limpia automaticamente los pines GPIO después de cada escaneo
   end
 end
