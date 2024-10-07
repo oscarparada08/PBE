@@ -5,8 +5,12 @@ require 'pi_piper'
 RST_PIN = 22  # Pin para RST del MFRC522
 SDA_PIN = 24  # Pin para SDA del MFRC522
 
-# Inicializa el lector
-reader = MFRC522.new()  # Cambia a la forma correcta de inicializar
+# Inicializa el lector sin parámetros
+reader = MFRC522.new
+
+# Configura los pines del lector
+reader.set_pin(:sda, SDA_PIN)
+reader.set_pin(:reset, RST_PIN)
 
 # Bucle principal
 loop do
