@@ -6,12 +6,12 @@ require 'mfrc522'      # Biblioteca para interactuar con el lector RFID MFRC522
 class RfidRc522
   def initialize
     # Inicializa el lector RFID
-    @reader = MFRC522::Reader.new
+    reader = MFRC522::Reader.new
   end
 
   # Método que inicializa el lector, lee el UID de la tarjeta y lo devuelve en formato hexadecimal
   def scan_uid
-    uid = @reader.read_uid  # Lee el UID de la tarjeta RFID
+    uid = reader.read_uid  # Lee el UID de la tarjeta RFID
     return uid.map { |byte| byte.to_s(16).upcase }.join if uid # Convierte el UID a formato hexadecimal en mayúsculas
     nil
   end
