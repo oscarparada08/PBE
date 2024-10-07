@@ -6,7 +6,7 @@ RST_PIN = 22  # Pin para RST del MFRC522
 SDA_PIN = 24  # Pin para SDA del MFRC522
 
 # Inicializa el lector
-reader = MFRC522.new(spi: 0, cs: SDA_PIN, reset: RST_PIN)
+reader = MFRC522.new(SDA_PIN, RST_PIN)  # Cambia a la forma correcta de inicializar
 
 # Bucle principal
 loop do
