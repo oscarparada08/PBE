@@ -1,25 +1,20 @@
 # Este script utiliza un lector RFID MFRC522 para leer el UID de tarjetas RFID
-# Requiere una Raspberry Pi y módulos adicionales para GPIO y control de colores en terminal.
+# Asegúrate de tener las bibliotecas necesarias instaladas.
 
 require 'rpi_gpio'  # Biblioteca para controlar los pines GPIO en la Raspberry Pi
-require 'colorize'  # Biblioteca para agregar color al texto en la terminal
 require 'mfrc522'   # Biblioteca para interactuar con el lector RFID MFRC522
 
 # Definimos una clase que se encargará de manejar el lector RFID
 class RfidRc522
-  # Método que inicializa el lector, lee el UID de la tarjeta y lo devuelve en formato hexadecimal
+  def initialize
+    @reader = MFRC522::Reader.new  # Creamos una nueva instancia del lector RFID
+  end
+
+  # Método para escanear y leer el UID de la tarjeta
   def scan_uid
-    # Creamos una nueva instancia del lector RFID
-    reader = MFRC522::Reader.new
-    
-    # Leemos el UID de la tarjeta RFID
-    uid = reader.read_uid
-    
-    # Convertimos el UID a formato hexadecimal en mayúsculas
-    uid_hex = uid.map { |byte| byte.to_s(16).upcase }.join
-    
-    # Retornamos el UID en formato hexadecimal
-    return uid_hex
+    uid = @reader.read_uid
+    return uid if uid
+    nil
   end
 end
 
@@ -28,42 +23,20 @@ def clear_screen
   system('clear')
 end
 
-# Variable para controlar el ciclo de escaneo
-opc = ""
-
-# Bucle que sigue ejecutándose hasta que el usuario elija no escanear más
-while opc != "n"
-  # Limpiamos la pantalla antes de cada escaneo
+# Bucle principal
+rfid_reader = RfidRc522.new
+loop do
   clear_screen
+  puts "Coloca tu tarjeta RFID cerca del lector..."
   
-  # Mostramos un mensaje con instrucciones para el usuario, con colores
-  puts "\t" + "<<<<<<<<<<<<".red
-  puts "\t" + "    SCAN   ".yellow
-  puts "\t" + "    YOUR   ".yellow
-  puts "\t" + "    PASS   ".yellow
-  puts "\t" + "<<<<<<<<<<<<".red
+  # Escanear el UID de la tarjeta
+  uid = rfid_reader.scan_uid
 
-  begin
-    # Inicializamos el objeto para manejar el lector RFID
-    rf = RfidRc522.new
-    
-    # Escaneamos y obtenemos el UID de la tarjeta
-    uid = rf.scan_uid
-    
-    # Mostramos el UID obtenido en la terminal
-    puts "\t YOUR UID IS:"
-    puts "\t" + ">>>>>>>>>>".green
-    puts "\t" + uid.strip.sub(/^0x/i, "").green  # Eliminamos el prefijo '0x' y mostramos en verde
-    puts "\t" + ">>>>>>>>>>".green
-  ensure
-    # Preguntamos al usuario si quiere escanear otra tarjeta
-    opc = "n"  # Inicializamos la opción como 'n' (para evitar que se quede en ciclo infinito)
-    print "\t SCAN AGAIN? (y/n): "
-    
-    # Leemos la entrada del usuario y la convertimos a minúsculas
-    opc = gets.chomp.downcase
-    
-    # Limpiamos los pines GPIO después de cada escaneo
-    RPi::GPIO.clean_up
+  if uid
+    puts "UID de la tarjeta: #{uid.join('-')}"  # Muestra el UID en la terminal
+  else
+    puts "No se detectó ninguna tarjeta."
   end
+  
+  sleep(1)  # Espera 1 segundo antes de volver a escanear
 end
