@@ -62,6 +62,6 @@ while opc != "n"
     opc = gets.chomp.downcase
 
     # Limpiamos los pines GPIO después de cada escaneo
-    RPi::GPIO.clean_up
+    PiPiper.clean_up
   end
 end
