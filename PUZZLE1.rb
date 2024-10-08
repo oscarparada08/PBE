@@ -1,6 +1,6 @@
 require 'pi_piper'
 require 'colorize'  # Asegúrate de tener la gema colorize instalada
-require_relative 'mfrc522' # Asegúrate de que el archivo mfrc522.rb esté en el mismo directorio
+require 'mfrc522' # Asegúrate de que el archivo mfrc522.rb esté en el mismo directorio
 
 class RfidRc522
   def initialize(nrstpd = 24, spd = 8000000, chip = 0, timer = 50)
