@@ -6,42 +6,56 @@ class MFRC522
   OK = 0
 
   def initialize(spi_id: 0, sck:, miso:, mosi:, cs:, rst:)
-    @spi = SPI.new(device: '/dev/spidev0.0', mode: 0, speed: 1_000_000) # Configura SPI
+    # Configura el dispositivo SPI en '/dev/spidev0.0'
+    @spi = SPI.new(device: '/dev/spidev0.0', mode: 0, speed: 1_000_000) 
     @cs_pin = cs
     @rst_pin = rst
 
-    # Configura pines usando PiPiper
-    PiPiper::Pin.new(pin: @cs_pin, direction: :out).on # Chip Select como salida
-    PiPiper::Pin.new(pin: @rst_pin, direction: :out).on # RST como salida
+    # Configura los pines usando PiPiper
+    PiPiper::Pin.new(pin: @cs_pin, direction: :out).on # Chip Select como salida y en estado alto
+    PiPiper::Pin.new(pin: @rst_pin, direction: :out).on # Reset como salida y en estado alto
     init
   end
 
   def init
-    # Inicializa el lector MFRC522
+    # Reinicia el lector MFRC522
     PiPiper::Pin.new(pin: @rst_pin, direction: :out).off
     sleep(0.05)
     PiPiper::Pin.new(pin: @rst_pin, direction: :out).on
   end
 
   def request(mode)
-    # Envía una solicitud para detectar una tarjeta
-    PiPiper::Pin.new(pin: @cs_pin, direction: :out).off # Activa el CS
-    response = @spi.write([mode])
-    PiPiper::Pin.new(pin: @cs_pin, direction: :out).on # Desactiva el CS
+    # Envía la solicitud para detectar una tarjeta
+    cs_pin = PiPiper::Pin.new(pin: @cs_pin, direction: :out)
+    cs_pin.off # Activa el CS (Chip Select)
+    
+    # Transferencia SPI para enviar el comando y recibir la respuesta
+    response = @spi.xfer([mode])
+    
+    cs_pin.on # Desactiva el CS
     [OK, response]
   end
 
   def select_tag_sn
-    # Simulación de selección de tarjeta y retorno de UID
-    PiPiper::Pin.new(pin: @cs_pin, direction: :out).off
-    response = @spi.write([0x93, 0x20]) # Comando para seleccionar tarjeta (ejemplo)
-    PiPiper::Pin.new(pin: @cs_pin, direction: :out).on
-    uid = response[1..4] # Extracción del UID (4 bytes)
+    # Selecciona la tarjeta y devuelve su UID
+    cs_pin = PiPiper::Pin.new(pin: @cs_pin, direction: :out)
+    cs_pin.off
+    
+    # Comando para seleccionar tarjeta y obtener UID
+    response = @spi.xfer([0x93, 0x20]) # Comando de selección de tarjeta (ejemplo)
+    
+    cs_pin.on
+    uid = response[1..4] # Extrae el UID de la respuesta (primeros 4 bytes)
     [OK, uid]
   end
 end
 
-lector = MFRC522.new(spi_id: 0, sck: 2, miso: 4, mosi: 3, cs: 1, rst: 0)
+# Pines GPIO de la Raspberry Pi para el lector MFRC522
+CS_PIN = 25  # Sustituir por el pin GPIO correcto
+RST_PIN = 22 # Sustituir por el pin GPIO correcto
+
+# Crear instancia del lector RFID
+lector = MFRC522.new(spi_id: 0, sck: 2, miso: 4, mosi: 3, cs: CS_PIN, rst: RST_PIN)
 
 puts "Lector activo...\n"
 
