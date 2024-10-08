@@ -1,69 +1,62 @@
-# Este script utiliza un lector RFID MFRC522 para leer el UID de tarjetas RFID
-# Requiere una Raspberry Pi y módulos adicionales para GPIO y control de colores en terminal.
+require 'spi'
+require 'pi_piper'
 
-require'pi_piper' # Biblioteca para controlar los pines GPIO en la Raspberry Pi
-require 'colorize'  # Biblioteca para agregar color al texto en la terminal
-require 'mfrc522'   # Biblioteca para interactuar con el lector RFID MFRC522
+class MFRC522
+  REQIDL = 0x26
+  OK = 0
 
-# Definimos una clase que se encargará de manejar el lector RFID
-class RfidRc522
-  # Método que inicializa el lector, lee el UID de la tarjeta y lo devuelve en formato hexadecimal
-  def scan_uid
-    # Creamos una nueva instancia del lector RFID
-    reader = MFRC522::Reader.new
-    
-    # Leemos el UID de la tarjeta RFID
-    uid = reader.read_uid
-    
-    # Convertimos el UID a formato hexadecimal en mayúsculas
-    uid_hex = uid.map { |byte| byte.to_s(16).upcase }.join
-    
-    # Retornamos el UID en formato hexadecimal
-    return uid_hex
+  def initialize(spi_id: 0, sck:, miso:, mosi:, cs:, rst:)
+    @spi = SPI.new(device: '/dev/spidev0.0', mode: 0, speed: 1_000_000) # Configura SPI
+    @cs_pin = cs
+    @rst_pin = rst
+
+    # Configura pines usando PiPiper
+    PiPiper::Pin.new(pin: @cs_pin, direction: :out).on # Chip Select como salida
+    PiPiper::Pin.new(pin: @rst_pin, direction: :out).on # RST como salida
+    init
+  end
+
+  def init
+    # Inicializa el lector MFRC522
+    PiPiper::Pin.new(pin: @rst_pin, direction: :out).off
+    sleep(0.05)
+    PiPiper::Pin.new(pin: @rst_pin, direction: :out).on
+  end
+
+  def request(mode)
+    # Envía una solicitud para detectar una tarjeta
+    PiPiper::Pin.new(pin: @cs_pin, direction: :out).off # Activa el CS
+    response = @spi.write([mode])
+    PiPiper::Pin.new(pin: @cs_pin, direction: :out).on # Desactiva el CS
+    [OK, response]
+  end
+
+  def select_tag_sn
+    # Simulación de selección de tarjeta y retorno de UID
+    PiPiper::Pin.new(pin: @cs_pin, direction: :out).off
+    response = @spi.write([0x93, 0x20]) # Comando para seleccionar tarjeta (ejemplo)
+    PiPiper::Pin.new(pin: @cs_pin, direction: :out).on
+    uid = response[1..4] # Extracción del UID (4 bytes)
+    [OK, uid]
   end
 end
 
-# Método que limpia la pantalla del terminal
-def clear_screen
-  system('clear')
-end
+lector = MFRC522.new(spi_id: 0, sck: 2, miso: 4, mosi: 3, cs: 1, rst: 0)
 
-# Variable para controlar el ciclo de escaneo
-opc = ""
+puts "Lector activo...\n"
 
-# Bucle que sigue ejecutándose hasta que el usuario elija no escanear más
-while opc != "n"
-  # Limpiamos la pantalla antes de cada escaneo
-  clear_screen
+loop do
+  lector.init
+  stat, tag_type = lector.request(MFRC522::REQIDL)
   
-  # Mostramos un mensaje con instrucciones para el usuario, con colores
-  puts "\t" + "<<<<<<<<<<<<".red
-  puts "\t" + "    SCAN   ".yellow
-  puts "\t" + "    YOUR   ".yellow
-  puts "\t" + "    PASS   ".yellow
-  puts "\t" + "<<<<<<<<<<<<".red
-
-  begin
-    # Inicializamos el objeto para manejar el lector RFID
-    rf = RfidRc522.new
+  if stat == MFRC522::OK
+    stat, uid = lector.select_tag_sn
     
-    # Escaneamos y obtenemos el UID de la tarjeta
-    uid = rf.scan_uid
-    
-    # Mostramos el UID obtenido en la terminal
-    puts "\t YOUR UID IS:"
-    puts "\t" + ">>>>>>>>>>".green
-    puts "\t" + uid.strip.sub(/^0x/i, "").green  # Eliminamos el prefijo '0x' y mostramos en verde
-    puts "\t" + ">>>>>>>>>>".green
-  ensure
-    # Preguntamos al usuario si quiere escanear otra tarjeta
-    opc = "n"  # Inicializamos la opción como 'n' (para evitar que se quede en ciclo infinito)
-    print "\t SCAN AGAIN? (y/n): "
-    
-    # Leemos la entrada del usuario y la convertimos a minúsculas
-    opc = gets.chomp.downcase
-    
-    # Limpiamos los pines GPIO después de cada escaneo
-    RPi::GPIO.clean_up
+    if stat == MFRC522::OK
+      identificador = uid.reverse.inject(0) { |acc, byte| (acc << 8) | byte } # Convierte bytes a entero
+      puts "UID: #{identificador}"
+    end
   end
+
+  sleep 1
 end
