@@ -1,56 +1,77 @@
-require 'spi'
-require 'pi_piper'
+require 'pi_piper'   # Biblioteca para acceder a GPIO
+require 'spi'        # Biblioteca para SPI
+require 'mfrc522'    # Biblioteca para el lector RFID
 
-class MFRC522
-  def initialize(cs_pin:, rst_pin:)
-    # Configurar SPI en Raspberry Pi
-    @spi = SPI.new(device: '/dev/spidev0.0', mode: 0, speed: 1_000_000)
+class RFIDReader
+  SPI_BUS = 0            # Configura el bus SPI (0 o 1)
+  SPI_CHIP_SELECT = 0    # Pin de selección del chip
 
-    # Configurar pines GPIO para Chip Select y Reset
-    @cs_pin = PiPiper::Pin.new(pin: cs_pin, direction: :out)
-    @rst_pin = PiPiper::Pin.new(pin: rst_pin, direction: :out)
-
-    reset_device
-  end
-
-  def reset_device
-    @rst_pin.on # Poner el pin RST en alto
-    sleep 0.1
-    @rst_pin.off # Reiniciar el dispositivo
-    sleep 0.1
-    @rst_pin.on
+  def initialize
+    # Inicializa SPI
+    @spi = SPI::Bus.open(SPI_BUS, SPI_CHIP_SELECT)
+    # Inicializa el lector MFRC522
+    @mfrc522 = MFRC522.new(spi: @spi)
   end
 
   def read_uid
-    # Activar Chip Select
-    @cs_pin.off
+    loop do
+      # Intenta leer la UID de una tarjeta
+      uid = @mfrc522.read_uid
+      if uid
+        puts "UID de la tarjeta: #{uid.join(", ")}"
+        break
+      else
+        puts "Esperando tarjeta..."
+        sleep 1 # Espera 1 segundo antes de volver a intentar
+      end
+    end
+  end
 
-    # Enviar comando de lectura de tarjeta
-    response = @spi.xfer([0x93, 0x20]) # Comando para leer tarjeta RFID
+  def authenticate(sector, key)
+    # Autenticación para un sector específico
+    if @mfrc522.authenticate(sector, key)
+      puts "Autenticado correctamente para el sector #{sector}"
+      true
+    else
+      puts "Error de autenticación en el sector #{sector}"
+      false
+    end
+  end
 
-    # Desactivar Chip Select
-    @cs_pin.on
+  def read_block(sector, block)
+    # Leer datos de un bloque específico de una tarjeta
+    if authenticate(sector, MFRC522::KEY_A)
+      data = @mfrc522.read_block(sector, block)
+      puts "Datos del bloque #{block}: #{data.join(", ")}"
+    end
+  end
 
-    # Procesar la respuesta para obtener el UID
-    uid = response[1..4] # Extraer los bytes correspondientes al UID
-    uid.map { |byte| byte.to_s(16).rjust(2, '0') }.join(':').upcase
+  def write_block(sector, block, data)
+    # Escribir datos en un bloque específico de una tarjeta
+    if authenticate(sector, MFRC522::KEY_A)
+      if @mfrc522.write_block(sector, block, data)
+        puts "Datos escritos en el bloque #{block}."
+      else
+        puts "Error al escribir en el bloque #{block}."
+      end
+    end
+  end
+
+  def cleanup
+    # Cierra el bus SPI al terminar
+    @spi.close
   end
 end
 
-# Pines GPIO de la Raspberry Pi para el lector MFRC522
-CS_PIN = 25  # GPIO para Chip Select (SDA en el MFRC522)
-RST_PIN = 22 # GPIO para Reset (RST en el MFRC522)
+# Uso del lector RFID
+reader = RFIDReader.new
 
-# Crear una instancia del lector RFID
-lector = MFRC522.new(cs_pin: CS_PIN, rst_pin: RST_PIN)
+begin
+  reader.read_uid
 
-puts "Lector RFID activado. Coloca una tarjeta para leer el UID..."
-
-# Bucle para leer tarjetas RFID
-loop do
-  uid = lector.read_uid
-  unless uid.empty?
-    puts "UID de la tarjeta: #{uid}"
-  end
-  sleep 1
+  # Ejemplo de lectura y escritura en bloques
+  reader.read_block(1, 0) # Lee bloque 0 del sector 1
+  reader.write_block(1, 0, [0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07]) # Escribe en bloque 0 del sector 1
+ensure
+  reader.cleanup  # Asegúrate de cerrar el SPI al terminar
 end
