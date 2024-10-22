@@ -1,19 +1,32 @@
-require 'bundler/setup'
-require 'mfrc522'
+require 'mfrc522' 
+require 'securerandom'
 
-# Inicializa el lector
-r = MFRC522.new
+class Rfid
+	r = MFRC522.new
+	def read_uid
+		quedat = 1;
+		puts "Si us plau, introdueixi la seva targeta sobre el lector"
+		$stdout.flush
+		while(quedat==1) 
+			begin
+				r.picc_request(MFRC522::PICC_REQA) #Establiment de perifèric
+				uid_dec, que = r.picc_select           #Intent de lectura (pot llençar CommunicationError degut a timeout)
+			rescue CommunicationError => e             #Capturem raising (si entra aquí s'està assolint timeout)...				           
+			else					   #Ha capturat uid. Sortim
+				quedat = 0			   
+			end
+		end
+		uid = Array.new				           #Vector hexadecimal
+		uid_dec.length.times do |i|
+			uid[i]=uid_dec[i].to_s(16)
+		end
+		
+		return uid.join().upcase			   #Retornem uid capturat en forma de string concatenat, en majúscules
+	end
+end
 
-begin
-  # Solicita la tarjeta
-  r.picc_request(MFRC522::PICC_REQA)
-  
-  # Selecciona la tarjeta y obtiene el UID
-  uid, sak = r.picc_select
-  
-  # Imprime el UID
-  puts "UID de la tarjeta: #{uid}"
-rescue CommunicationError => e
-  # Manejo de errores en la comunicación
-  abort "Error comunicando con la tarjeta: #{e.message}"
+if __FILE__ == $0
+	rf = Rfid.new()					
+	uid = rf.read_uid
+	puts uid
 end
