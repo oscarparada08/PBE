@@ -1,5 +1,5 @@
 require "gtk3"
-require_relative 'primer_puzzle.rb'
+require_relative 'PUZZLE1.rb'
 require_relative 'widget_options.rb'
 
 rf = Rfid.new                                                         #Objecte únic RFID
