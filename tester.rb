@@ -1,60 +1,83 @@
 require 'gtk3'
-require_relative 'PUZZLE1'  # Cargar la biblioteca del puzzle 1
+require 'mfrc522'
 require 'thread'
 
 class RfidApp
   def initialize
+    @reader = MFRC522.new
+
     # Crear la ventana principal
     @window = Gtk::Window.new
-    @window.set_title("Lectura de targeta RFID")
-    @window.set_default_size(300, 200)
+    @window.set_title("Lectura RFID")
+    @window.set_default_size(400, 200)
+
+    # Crear una etiqueta (Label) para mostrar el UID
+    @label = Gtk::Label.new("Por favor, acerque la tarjeta al lector")
+
+    # Crear un botón para limpiar la etiqueta
+    @clear_button = Gtk::Button.new(label: "Limpiar")
+    @clear_button.signal_connect("clicked") { clear_uid }
+
+    # Empaquetar los widgets en un contenedor
+    box = Gtk::Box.new(:vertical, 10)
+    box.pack_start(@label, :expand => true, :fill => true, :padding => 10)
+    box.pack_start(@clear_button, :expand => false, :fill => true, :padding => 10)
+
+    # Asignar el contenedor a la ventana
+    @window.add(box)
+
+    # Conectar la señal de cierre de la ventana
     @window.signal_connect("destroy") { Gtk.main_quit }
 
-    # Crear el Label para mostrar el texto de la UID
-    @label = Gtk::Label.new("Please, loging with your university card.")
-    
-    # Crear el botón de "Clear"
-    @button_clear = Gtk::Button.new(label: "Clear")
-    @button_clear.signal_connect("clicked") { clear_uid }
-
-    # Crear el diseño (box) para la ventana
-    vbox = Gtk::Box.new(:vertical, 10)
-    vbox.pack_start(@label, :expand => true, :fill => true, :padding => 10)
-    vbox.pack_start(@button_clear, :expand => false, :fill => false, :padding => 10)
-
-    @window.add(vbox)
+    # Mostrar todos los elementos de la ventana
     @window.show_all
 
-    # Inicializar el lector RFID
-    @rfid_reader = Rfid.new
+    # Iniciar un hilo para leer el UID sin bloquear la interfaz
+    @read_thread = Thread.new { read_rfid }
   end
 
-  def start_reading_uid
-    # Crear un hilo separado para leer el UID de la tarjeta
-    Thread.new do
-      begin
-        uid = @rfid_reader.read_uid  # Llamar al método de lectura de UID de la biblioteca puzzle1
-        Gtk.main_add { @label.text = "UID: #{uid}" }
-      rescue => e
-        Gtk.main_add { @label.text = "Error: #{e.message}" }
-      end
+  # Método para leer el UID RFID (bloqueante, por eso se ejecuta en un hilo)
+  def read_rfid
+    while true
+      uid = read_uid
+      update_label(uid) if uid
+      sleep(1) # Evitar que el hilo consuma demasiado CPU
     end
   end
 
-  def clear_uid
-    # Actualizar el Label para limpiar la información
-    @label.text = "Si us plau, introdueixi la seva targeta sobre el lector."
+  # Método para leer el UID del lector RFID
+  def read_uid
+    quedat = 1
+    while quedat == 1
+      begin
+        @reader.picc_request(MFRC522::PICC_REQA)  # Establecer comunicación con el lector
+        uid_dec, _ = @reader.picc_select          # Intentar leer el UID
+      rescue CommunicationError
+        # No hay tarjeta detectada o ha expirado el tiempo de espera
+      else
+        # Si se captura el UID, salir del bucle
+        return uid_dec.map { |x| x.to_s(16) }.join.upcase
+      end
+    end
+    nil
   end
 
-  def run
-    # Iniciar el proceso de lectura
-    start_reading_uid
+  # Método para actualizar la etiqueta con el UID leído
+  def update_label(uid)
+    Gtk.main_queue do
+      @label.text = "UID: #{uid}"
+    end
+  end
 
-    # Iniciar la GUI de Gtk
-    Gtk.main
+  # Método para limpiar la etiqueta
+  def clear_uid
+    Gtk.main_queue do
+      @label.text = "Por favor, acerque la tarjeta al lector"
+    end
   end
 end
 
-# Crear una nueva instancia de la aplicación y arrancarla
+# Iniciar la aplicación GTK
 app = RfidApp.new
-app.run
+Gtk.main
+
