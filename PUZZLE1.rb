@@ -1,7 +1,4 @@
 require 'mfrc522' 
-
-#r variable declared as class variable to solve problems at segon_puzzle. Thank you, Marc Nueno. https://github.com/Marc-Nueno-Montolio ;)
-
 class Rfid
 	@@r = MFRC522.new
 	def read_uid
