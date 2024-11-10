@@ -11,7 +11,7 @@ class RfidApp
     @window.signal_connect("destroy") { Gtk.main_quit }
 
     # Crear el Label para mostrar el texto de la UID
-    @label = Gtk::Label.new("Si us plau, introdueixi la seva targeta sobre el lector.")
+    @label = Gtk::Label.new("Please, loging with your university card.")
     
     # Crear el botón de "Clear"
     @button_clear = Gtk::Button.new(label: "Clear")
