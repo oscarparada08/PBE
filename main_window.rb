@@ -1,6 +1,6 @@
 require 'gtk3'
 require_relative 'reader_thread'
-require_relative 'puzzle1'
+require_relative 'PUZZLE1'
 
 class MainWindow < Gtk::Window
   def initialize
