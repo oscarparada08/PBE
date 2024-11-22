@@ -1,6 +1,7 @@
 require 'gtk3'
 require_relative 'reader_thread'
 require_relative 'PUZZLE1'
+requiere_relative 'styles.css'
 
 class MainWindow < Gtk::Window
   def initialize
