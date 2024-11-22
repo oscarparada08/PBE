@@ -1,55 +1,45 @@
-require "gtk3"
-require "thread"
-require_relative "PUZZLE1.rb"
+require 'gtk3'
+require_relative 'reader_thread' # Solo importa la clase del hilo
 
 class Window < Gtk::Window
   def initialize
     super
-    set_title 'rfid_gtk.rb' 
+    set_title 'RFID Reader'
     set_border_width 10
     set_size_request 500, 200
 
-    # Load CSS
-    load_css("style.css")
+    # Cargar estilos desde style.css
+    load_css('style.css')
 
-    signal_connect("destroy") do
-      Gtk.main_quit
-      @thread.kill if @thread
-    end
+    signal_connect('destroy') { Gtk.main_quit }
 
-    @hbox = Gtk::Box.new(:vertical, 6)
-    add(@hbox)
+    # Contenedor principal
+    vbox = Gtk::Box.new(:vertical, 10)
+    add(vbox)
 
-    # Label
-    @label = Gtk::Label.new("Please, login with your university card")
-    @label.set_name("label") # Apply CSS ID
-    @hbox.pack_start(@label)
+    # Etiqueta inicial
+    @label = Gtk::Label.new("Por favor, acerque su tarjeta")
+    @label.set_name('label') # Asignar el ID CSS
+    vbox.pack_start(@label, expand: true, fill: true, padding: 10)
 
-    # Button
-    @button = Gtk::Button.new(label: 'Clear')
-    @button.set_name("button") # Apply CSS ID
-    @button.signal_connect('clicked') { on_clear_clicked }
-    @hbox.pack_start(@button)
+    # Botón de limpiar
+    button = Gtk::Button.new(label: 'Clear')
+    button.set_name('button') # Asignar el ID CSS
+    button.signal_connect('clicked') { on_clear_clicked }
+    vbox.pack_start(button, expand: false, fill: false, padding: 10)
   end
 
   def on_clear_clicked
-    @label.set_markup("Please, login with your university card")
-    @label.set_name("label") # Reset CSS class
-    @thread.kill if @thread
-    rfid
+    @label.set_text("Por favor, acerque su tarjeta")
+    @label.set_name('label') # Restaurar el estilo CSS original
   end
 
-  def rfid
-    @rfid = Rfid.new
-    @thread = Thread.new do
-      uid = @rfid.read_uid
-      GLib::Idle.add do
-        @label.set_markup("uid: #{uid}")
-        @label.set_name("label red") # Change CSS class
-        false
-      end
-    end
+  def update_uid(uid)
+    @label.set_text("UID: #{uid}")
+    @label.set_name('label red') # Cambiar el estilo al de alerta
   end
+
+  private
 
   def load_css(file)
     provider = Gtk::CssProvider.new
@@ -62,7 +52,12 @@ class Window < Gtk::Window
   end
 end
 
+# Crear ventana principal y ejecutar el hilo del lector RFID
 win = Window.new
 win.show_all
-win.rfid
+
+# Iniciar el hilo del lector RFID
+ReaderThread.new(win)
+
+# Iniciar el bucle principal de GTK
 Gtk.main
