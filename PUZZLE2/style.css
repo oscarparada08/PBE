@@ -1,0 +1,22 @@
+/* style.css */
+#label {
+    background-color: blue;
+    color: white;
+    padding: 20px;
+    font-size: 18px;
+    text-align: center;
+    border-radius: 10px;
+}
+
+#label.red {
+    background-color: red;
+}
+
+#button {
+    background-color: lightgray;
+    color: black;
+    border-radius: 5px;
+    padding: 10px;
+    font-size: 16px;
+    text-align: center;
+}
