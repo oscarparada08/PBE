@@ -1,65 +1,63 @@
 require 'gtk3'
-require_relative 'reader_thread'
-require_relative 'PUZZLE1'
-requiere_relative 'styles.css'
+require_relative 'reader_thread' # Solo importa la clase del hilo
 
-class MainWindow < Gtk::Window
+class Window < Gtk::Window
   def initialize
     super
-    set_title('Lectura de targeta UPC')
-    set_default_size(400, 200)
+    set_title 'RFID Reader'
+    set_border_width 10
+    set_size_request 500, 200
 
-    # Carregar els estils CSS
-    provider = Gtk::CssProvider.new
-    provider.load(data: File.read('styles.css'))
-    style_context.add_provider(provider, Gtk::StyleProvider::PRIORITY_USER)
+    # Cargar estilos desde style.css
+    load_css('style.css')
 
-    # Contenidor vertical
+    signal_connect('destroy') { Gtk.main_quit }
+
+    # Contenedor principal
     vbox = Gtk::Box.new(:vertical, 10)
     add(vbox)
 
-    # Etiqueta per demanar login
-    @label = Gtk::Label.new('Escanegi la targeta per obtenir el UID')
-    vbox.pack_start(@label, expand: false, fill: false, padding: 5)
+    # Etiqueta inicial
+    @label = Gtk::Label.new("Por favor, acerque su tarjeta")
+    @label.set_name('label') # Asignar el ID CSS
+    vbox.pack_start(@label, expand: true, fill: true, padding: 10)
 
-    # Camp de text per mostrar el UID
-    @textview = Gtk::TextView.new
-    @textview.set_editable(false)
-    vbox.pack_start(@textview, expand: true, fill: true, padding: 5)
-
-    # Botó per esborrar el UID
-    @clear_button = Gtk::Button.new(label: 'Clear')
-    @clear_button.signal_connect('clicked') { clear_uid }
-    vbox.pack_start(@clear_button, expand: false, fill: false, padding: 5)
-
-    # Comença el thread per llegir el UID
-    start_reader_thread
-
-    show_all
+    # Botón de limpiar
+    button = Gtk::Button.new(label: 'Clear')
+    button.set_name('button') # Asignar el ID CSS
+    button.signal_connect('clicked') { on_clear_clicked }
+    vbox.pack_start(button, expand: false, fill: false, padding: 10)
   end
 
-  def start_reader_thread
-    ReaderThread.new(self)
+  def on_clear_clicked
+    @label.set_text("Por favor, acerque su tarjeta")
+    @label.set_name('label') # Restaurar el estilo CSS original
   end
 
   def update_uid(uid)
-    # Actualitza el text del TextView amb el UID llegit
-    buffer = @textview.buffer
-    buffer.text = "UID llegit: #{uid}"
+    @label.set_text("UID: #{uid}")
+    @label.set_name('label red') # Cambiar el estilo al de alerta
   end
 
-  def clear_uid
-    # Esborra el text del TextView
-    @textview.buffer.text = ''
+  private
+
+  def load_css(file)
+    provider = Gtk::CssProvider.new
+    provider.load(path: file)
+    Gtk::StyleContext.add_provider_for_screen(
+      Gdk::Screen.default,
+      provider,
+      Gtk::StyleProvider::PRIORITY_USER
+    )
   end
 end
 
-# Inicialitza l'aplicació
-app = Gtk::Application.new('com.exemple.lectura_targeta', :flags_none)
-app.signal_connect('activate') do |application|
-  win = MainWindow.new
-  win.application = application
-  win.show_all
-end
+# Crear ventana principal y ejecutar el hilo del lector RFID
+win = Window.new
+win.show_all
 
-app.run
+# Iniciar el hilo del lector RFID
+ReaderThread.new(win)
+
+# Iniciar el bucle principal de GTK
+Gtk.main
